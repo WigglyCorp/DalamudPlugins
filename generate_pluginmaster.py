@@ -370,6 +370,8 @@ class RepositoryPluginProcessor:
                 if testing_info:
                     manifest["TestingAssemblyVersion"] = testing_info["version"]
                     manifest["_testing_download_url"] = testing_info["download_url"]
+                    if testing_info.get("api_level") is not None:
+                        manifest["TestingDalamudApiLevel"] = testing_info["api_level"]
                     print(f"Found testing release for {plugin_name}: v{testing_info['version']}")
 
                 print(f"Successfully extracted manifest for {plugin_name} v{manifest.get('AssemblyVersion', 'unknown')}")
@@ -417,7 +419,7 @@ class RepositoryPluginProcessor:
         return None
 
     def _get_testing_release_info(self, owner: str, repo: str, plugin_name: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Fetch testing pre-release info (version and download URL) from a repository."""
+        """Fetch testing pre-release info (version, download URL, API level) from a repository."""
         try:
             api_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
             headers = {"Authorization": f"token {token}"} if token else {}
@@ -445,15 +447,28 @@ class RepositoryPluginProcessor:
                     continue
 
                 # Find a downloadable zip asset
+                download_url = None
                 for asset in release.get("assets", []):
                     if asset.get("name") == "latest.zip":
                         download_url = f"https://github.com/{owner}/{repo}/releases/download/{tag_name}/latest.zip"
-                        return {"version": testing_version, "download_url": download_url}
+                        break
 
-                for asset in release.get("assets", []):
-                    if asset.get("name", "").endswith(".zip"):
-                        download_url = f"https://github.com/{owner}/{repo}/releases/download/{tag_name}/{asset['name']}"
-                        return {"version": testing_version, "download_url": download_url}
+                if not download_url:
+                    for asset in release.get("assets", []):
+                        if asset.get("name", "").endswith(".zip"):
+                            download_url = f"https://github.com/{owner}/{repo}/releases/download/{tag_name}/{asset['name']}"
+                            break
+
+                if not download_url:
+                    continue
+
+                # Extract DalamudApiLevel from the testing ZIP manifest
+                api_level = None
+                testing_manifest = self._extract_manifest_from_url(download_url, plugin_name, token)
+                if testing_manifest:
+                    api_level = testing_manifest.get("DalamudApiLevel")
+
+                return {"version": testing_version, "download_url": download_url, "api_level": api_level}
 
             return None
 
