@@ -37,29 +37,5 @@
         "Name": "Influx",
         "Punchline": "Sync game stats to InfluxDB or QuestDB",
         "RepoUrl": "https://github.com/WigglyMuffin/Influx"
-    },
-    {
-        "ApplicableVersion": "any",
-        "AssemblyVersion": "1.0.24.0",
-        "Author": "MacaronDream",
-        "DalamudApiLevel": 14,
-        "Description": "Automated character rotation and quest sequence execution for Questionable.",
-        "DownloadCount": 1611,
-        "DownloadLinkInstall": "https://github.com/MacaronDream/QSTCompanion/releases/latest/download/latest.zip",
-        "DownloadLinkUpdate": "https://github.com/MacaronDream/QSTCompanion/releases/latest/download/latest.zip",
-        "IconUrl": "https://raw.githubusercontent.com/MacaronDream/QSTCompanion/main/icon.png",
-        "InternalName": "QSTCompanion",
-        "LastUpdate": "1771974270",
-        "Name": "Questionable Companion",
-        "Punchline": "Automated character rotation and quest sequence execution",
-        "RepoUrl": "https://github.com/MacaronDream/QSTCompanion",
-        "Tags": [
-            "automation",
-            "quests",
-            "Companion",
-            "character",
-            "rotation",
-            "questionable"
-        ]
     }
 ]
