@@ -47,7 +47,14 @@ jobs:
           pip install -r requirements.txt
           python generate_pluginmaster.py
       - uses: EndBug/add-and-commit@v9
+        id: commit
         with:
           author_name: GitHub Action
           author_email: github-actions[bot]@users.noreply.github.com
           message: Regenerate PluginMaster
+      - name: Trigger alt-repo regeneration
+        if: steps.commit.outputs.committed == 'true'
+        run: |
+          gh api repos/WigglyMuffin/alt-repo/dispatches -f event_type=regenerate
+        env:
+          GH_TOKEN: ${{ secrets.PLUGIN_PAT }}
