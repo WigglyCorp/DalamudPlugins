@@ -20,6 +20,13 @@
       "enabled": true,
       "output": "default",
       "token": "PLUGIN_PAT"
+    },
+    "QuestionableConverter": {
+      "url": "https://github.com/https://github.com/WigglyMuffin/QuestionableConverter",
+      "token": "PLUGIN_PAT",
+      "output": "default",
+      "enabled": false,
+      "displayName": "Questionable Converter"
     }
   }
 }
