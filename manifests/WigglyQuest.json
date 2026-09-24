@@ -2,7 +2,7 @@
   "Author": "WigglyMuffin, CryoTechnic",
   "Name": "Questionable",
   "InternalName": "WigglyQuest",
-  "AssemblyVersion": "7.5.24",
+  "AssemblyVersion": "7.5.25",
   "Description": "Automates quests from accept to turn-in - main scenario, class and job, allied society and side quests.\n\nSmart navigation plans the route across zones using aetherytes, aethernet and transports, then walks you to each objective. Dialogue, interactions and turn-ins are handled for you.",
   "ApplicableVersion": "any",
   "RepoUrl": "https://github.com/WigglyMuffin/Questionable",
