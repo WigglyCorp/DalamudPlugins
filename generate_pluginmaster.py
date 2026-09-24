@@ -293,6 +293,7 @@ class RepositoryPluginProcessor:
         token_names = {rc["token"] for rc in config.repository_list.values()}
         token_names.add("GITHUB_TOKEN")  # always available
         self.tokens = {name: os.environ.get(name) for name in token_names}
+        self.written_manifests = set()
 
     def get_repository_plugins(self) -> List[Dict[str, Any]]:
         """Get plugin manifests from configured repositories."""
@@ -316,6 +317,9 @@ class RepositoryPluginProcessor:
         internal_name = manifest.get("InternalName")
         if not internal_name:
             return
+        if internal_name in self.written_manifests:
+            print(f"WARNING: two sources ship InternalName {internal_name}, manifests/{internal_name}.json overwritten")
+        self.written_manifests.add(internal_name)
         self.config.manifests_dir.mkdir(exist_ok=True)
         with open(self.config.manifests_dir / f"{internal_name}.json", 'w', encoding='utf-8') as f:
             json.dump(manifest, f, indent=2, ensure_ascii=False)
@@ -782,6 +786,7 @@ class PluginMasterGenerator:
 
         print("Writing plugin master file(s)...")
         self._write_plugin_master(manifests)
+        self._cleanup_stale_raw_manifests({m.get("InternalName") for m in manifests})
 
         print("Generating alias plugin master files...")
         self._generate_alias_files()
@@ -974,6 +979,15 @@ class PluginMasterGenerator:
             if resolved not in current_output_paths and resolved not in protected:
                 json_file.unlink()
                 print(f"Removed stale output file: {json_file}")
+
+    def _cleanup_stale_raw_manifests(self, internal_names: set) -> None:
+        """Remove manifests/<InternalName>.json files for plugins no longer in the plugin master."""
+        if not self.config.manifests_dir.exists():
+            return
+        for json_file in self.config.manifests_dir.glob("*.json"):
+            if json_file.stem not in internal_names:
+                json_file.unlink()
+                print(f"Removed stale raw manifest: {json_file}")
 
     def _update_last_modified(self, manifests: List[Dict[str, Any]]) -> None:
         """Update LastUpdate timestamps based on file modification times or repository release dates."""
