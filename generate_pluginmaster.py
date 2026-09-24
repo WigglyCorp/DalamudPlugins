@@ -22,6 +22,7 @@ class Config:
     plugin_aliases: Dict[str, Dict[str, Any]]
     repo: str = "WigglyMuffin/DalamudPlugins"
     global_api_level: int = 13
+    manifests_dir: Path = Path("./manifests")
 
     @classmethod
     def _load_plugin_sources(cls) -> Tuple[Dict[str, Path], Dict[str, Dict[str, str]], Dict[str, str]]:
@@ -310,6 +311,16 @@ class RepositoryPluginProcessor:
 
         return manifests
 
+    def _write_raw_manifest(self, manifest: Dict[str, Any]) -> None:
+        """Save the manifest exactly as shipped in the release zip to manifests/<InternalName>.json."""
+        internal_name = manifest.get("InternalName")
+        if not internal_name:
+            return
+        self.config.manifests_dir.mkdir(exist_ok=True)
+        with open(self.config.manifests_dir / f"{internal_name}.json", 'w', encoding='utf-8') as f:
+            json.dump(manifest, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+
     def _get_manifest_from_repository(self, plugin_name: str, repo_url: str, token_name: str) -> Optional[Dict[str, Any]]:
         """Extract manifest from a GitHub repository's latest release."""
         try:
@@ -358,6 +369,7 @@ class RepositoryPluginProcessor:
 
             manifest = self._extract_manifest_from_url(plugin_zip_url, plugin_name, token)
             if manifest:
+                self._write_raw_manifest(manifest)
                 manifest["RepoUrl"] = repo_url
                 manifest["_repository_source"] = True
                 manifest["_repository_asset_url"] = plugin_zip_url
