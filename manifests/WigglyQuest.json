@@ -1,0 +1,21 @@
+{
+  "Author": "WigglyMuffin, CryoTechnic",
+  "Name": "Questionable",
+  "InternalName": "WigglyQuest",
+  "AssemblyVersion": "7.5.20",
+  "Description": "Automates quests from accept to turn-in - main scenario, class and job, allied society and side quests.\n\nSmart navigation plans the route across zones using aetherytes, aethernet and transports, then walks you to each objective. Dialogue, interactions and turn-ins are handled for you.",
+  "ApplicableVersion": "any",
+  "RepoUrl": "https://github.com/WigglyMuffin/Questionable",
+  "Tags": [
+    "quests",
+    "msq"
+  ],
+  "DalamudApiLevel": 15,
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "CanUnloadAsync": false,
+  "LoadPriority": 0,
+  "IconUrl": "https://raw.githubusercontent.com/WigglyMuffin/DalamudPlugins/main/icons/Questionable.png",
+  "Punchline": "Automated questing with smart navigation.",
+  "AcceptsFeedback": true
+}
