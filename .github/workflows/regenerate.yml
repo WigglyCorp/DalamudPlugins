@@ -51,8 +51,3 @@ jobs:
           author_name: GitHub Action
           author_email: github-actions[bot]@users.noreply.github.com
           message: Regenerate PluginMaster
-      - name: Trigger alt-repo regeneration
-        run: |
-          gh api repos/WigglyMuffin/alt-repo/dispatches -f event_type=regenerate
-        env:
-          GH_TOKEN: ${{ secrets.PLUGIN_PAT }}
