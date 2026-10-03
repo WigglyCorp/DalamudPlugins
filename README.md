@@ -26,7 +26,7 @@
   - Chauffeur Mode for following main character through quests
   - Data Center travel automation
   - Stop point configuration for controlled progression
-- **Required Dependencies**: [Questionable](https://github.com/WigglyMuffin/Questionable/), [AutoRetainer](https://github.com/PunishXIV/AutoRetainer)
+- **Required Dependencies**: [Questionable](https://github.com/WigglyCorp/Questionable/), [AutoRetainer](https://github.com/PunishXIV/AutoRetainer)
 
 ### Influx
 - **Author**: WigglyMuffin

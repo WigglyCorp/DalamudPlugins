@@ -4,7 +4,7 @@
   },
   "plugins": {
     "Questionable": {
-      "url": "https://github.com/WigglyMuffin/Questionable",
+      "url": "https://github.com/WigglyCorp/Questionable",
       "enabled": true,
       "output": "default",
       "token": "PLUGIN_PAT"
