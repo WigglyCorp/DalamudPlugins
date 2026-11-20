@@ -1,0 +1,24 @@
+{
+  "Author": "WigglyMuffin",
+  "Name": "WigglyTester",
+  "InternalName": "WigglyTester",
+  "AssemblyVersion": "0.1.1.0",
+  "Description": "Redeem a tester key to get your personal list of WigglyMuffin test plugins, install them and keep them updated.",
+  "ApplicableVersion": "any",
+  "RepoUrl": "https://github.com/WigglyMuffin/WigglyTester",
+  "Tags": [
+    "testing",
+    "tester",
+    "beta"
+  ],
+  "CategoryTags": [
+    "Utility"
+  ],
+  "DalamudApiLevel": 15,
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "CanUnloadAsync": false,
+  "LoadPriority": 0,
+  "Punchline": "Access to WigglyMuffin test plugins you have been invited to.",
+  "AcceptsFeedback": true
+}
