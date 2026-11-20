@@ -1,6 +1,7 @@
 {
   "outputs": {
-    "default": "pluginmaster.json"
+    "default": "pluginmaster.json",
+    "testers": "testers.json"
   },
   "plugins": {
     "Questionable": {
@@ -27,6 +28,12 @@
       "output": "default",
       "enabled": true,
       "displayName": "Questionable Converter"
+    },
+    "WigglyTester": {
+      "url": "https://github.com/WigglyMuffin/WigglyTester",
+      "enabled": true,
+      "output": "testers",
+      "token": "PLUGIN_PAT"
     }
   }
 }
