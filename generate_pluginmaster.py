@@ -1,5 +1,6 @@
 import json
 import os
+import urllib.parse
 import requests
 from pathlib import Path
 from zipfile import ZipFile
@@ -14,7 +15,7 @@ class Config:
     plugins_dir: Path
     output_files: Dict[str, Path]
     plugin_outputs: Dict[str, str]
-    repository_list: Dict[str, Dict[str, str]]
+    repository_list: Dict[str, Dict[str, Any]]
     external_plugins: Dict[str, Dict[str, str]]
     download_urls: Dict[str, str]
     required_manifest_keys: List[str]
@@ -25,7 +26,7 @@ class Config:
     manifests_dir: Path = Path("./manifests")
 
     @classmethod
-    def _load_plugin_sources(cls) -> Tuple[Dict[str, Path], Dict[str, Dict[str, str]], Dict[str, str]]:
+    def _load_plugin_sources(cls) -> Tuple[Dict[str, Path], Dict[str, Dict[str, Any]], Dict[str, str]]:
         """Load plugin sources from plugin-sources.json if it exists.
 
         Returns (output_files, repository_list, plugin_outputs).
@@ -54,9 +55,15 @@ class Config:
                 if not plugin_config.get("enabled", True):
                     print(f"Skipping disabled plugin: {plugin_name}")
                     continue
+                raw_yanked = plugin_config.get("yanked", [])
+                if not isinstance(raw_yanked, list):
+                    print(f"WARNING: {plugin_name} has a non-list yanked value - treating it as empty")
+                    raw_yanked = []
+                yanked = {str(v)[1:] if str(v).startswith("v") else str(v) for v in raw_yanked}
                 repository_list[plugin_name] = {
                     "url": plugin_config["url"],
-                    "token": plugin_config.get("token", "GITHUB_TOKEN")
+                    "token": plugin_config.get("token", "GITHUB_TOKEN"),
+                    "yanked": yanked
                 }
                 plugin_outputs[plugin_name] = plugin_config.get("output", "default")
 
@@ -168,10 +175,15 @@ class PluginProcessor:
             # Extract asset ID from API URL and construct public download URL
             # API URL format: https://api.github.com/repos/{owner}/{repo}/releases/assets/{id}
             owner_repo = repo_url.replace("https://github.com/", "").rstrip("/")
+            # Tag-specific link keeps the advertised version and the served zip on the same release
+            tag = urllib.parse.quote(manifest.get("_repository_tag", ""), safe='')
             
             try:
                 token_name = manifest.get("_repository_token_name")
-                if token_name:
+                if manifest.get("_repository_asset_name"):
+                    manifest["DownloadLinkInstall"] = f"https://github.com/{owner_repo}/releases/download/{tag}/{manifest['_repository_asset_name']}"
+                    print(f"Using repository releases for {plugin_name}: {manifest['DownloadLinkInstall']}")
+                elif token_name:
                     token = os.environ.get(token_name)
                     headers = {"Authorization": f"token {token}"}
                     response = requests.get(asset_api_url, headers=headers)
@@ -179,7 +191,7 @@ class PluginProcessor:
                         asset_info = response.json()
                         asset_name = asset_info.get("name")
                         if asset_name:
-                            manifest["DownloadLinkInstall"] = f"https://github.com/{owner_repo}/releases/latest/download/{asset_name}"
+                            manifest["DownloadLinkInstall"] = f"https://github.com/{owner_repo}/releases/download/{tag}/{asset_name}"
                             print(f"Using repository releases for {plugin_name}: {manifest['DownloadLinkInstall']}")
                         else:
                             print(f"WARNING: Could not determine asset name for {plugin_name}")
@@ -302,9 +314,10 @@ class RepositoryPluginProcessor:
         for plugin_name, repo_config in self.config.repository_list.items():
             repo_url = repo_config["url"]
             token_name = repo_config["token"]
+            yanked = repo_config.get("yanked", set())
             print(f"Processing repository plugin: {plugin_name} from {repo_url} (using {token_name})")
 
-            repo_manifest = self._get_manifest_from_repository(plugin_name, repo_url, token_name)
+            repo_manifest = self._get_manifest_from_repository(plugin_name, repo_url, token_name, yanked)
             if repo_manifest:
                 # Tag output routing now while we have the correct plugin-sources.json key
                 repo_manifest["_output_name"] = self.config.plugin_outputs.get(plugin_name, "default")
@@ -325,8 +338,17 @@ class RepositoryPluginProcessor:
             json.dump(manifest, f, indent=2, ensure_ascii=False)
             f.write("\n")
 
-    def _get_manifest_from_repository(self, plugin_name: str, repo_url: str, token_name: str) -> Optional[Dict[str, Any]]:
-        """Extract manifest from a GitHub repository's latest release."""
+    @staticmethod
+    def _tag_version(tag: str) -> str:
+        """Tag with a leading testing-v or v stripped, the form stored in plugin-sources.json yanked lists."""
+        if tag.startswith("testing-v"):
+            return tag[len("testing-v"):]
+        if tag.startswith("v"):
+            return tag[len("v"):]
+        return tag
+
+    def _get_manifest_from_repository(self, plugin_name: str, repo_url: str, token_name: str, yanked: Optional[set] = None) -> Optional[Dict[str, Any]]:
+        """Extract manifest from a GitHub repository's Latest release, or the newest listable stable (by published_at) when that one is yanked."""
         try:
             repo_path = repo_url.replace("https://github.com/", "").rstrip("/")
             if "/" not in repo_path:
@@ -335,6 +357,7 @@ class RepositoryPluginProcessor:
 
             owner, repo = repo_path.split("/", 1)
 
+            yanked = yanked or set()
             api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
             
             # Get the specified token
@@ -354,6 +377,31 @@ class RepositoryPluginProcessor:
                 return None
 
             release_data = response.json()
+
+            # One list read serves the testing pick and, when Latest is yanked, the stable fallback.
+            # A failed list costs only those, as the old separate testing call did.
+            try:
+                list_response = requests.get(f"https://api.github.com/repos/{owner}/{repo}/releases", headers=headers, params={"per_page": 100})
+                releases = list_response.json() if list_response.status_code == 200 else []
+            except (requests.exceptions.RequestException, ValueError) as e:
+                print(f"Release list read failed for {owner}/{repo}: {e} - no testing pick or unlist fallback this run")
+                releases = []
+            if not isinstance(releases, list):
+                releases = []
+
+            if self._tag_version(release_data.get("tag_name", "")) in yanked:
+                # Latest published_at, not list order: the list is ordered by created_at (the target commit
+                # date), so a rebuild from an old tag would sort below newer releases
+                stable_releases = [
+                    r for r in releases
+                    if not r.get("draft") and not r.get("prerelease")
+                    and self._tag_version(r.get("tag_name", "")) not in yanked
+                ]
+                if not stable_releases:
+                    print(f"No non-yanked stable release found for {plugin_name} in {owner}/{repo}")
+                    return None
+                release_data = max(stable_releases, key=lambda r: r.get("published_at") or "")
+                print(f"Latest release of {plugin_name} is yanked - using {release_data.get('tag_name')}")
 
             release_date = release_data.get("published_at")
             if release_date:
@@ -378,11 +426,15 @@ class RepositoryPluginProcessor:
                 manifest["_repository_source"] = True
                 manifest["_repository_asset_url"] = plugin_zip_url
                 manifest["_repository_token_name"] = token_name
+                manifest["_repository_tag"] = release_data.get("tag_name", "")
+                asset_name = next((a.get("name") for a in release_data.get("assets", []) if a.get("url") == plugin_zip_url), None)
+                if asset_name:
+                    manifest["_repository_asset_name"] = asset_name
                 if release_timestamp:
                     manifest["LastUpdate"] = release_timestamp
 
                 # Check for testing pre-release
-                testing_info = self._get_testing_release_info(owner, repo, plugin_name, token)
+                testing_info = self._get_testing_release_info(owner, repo, plugin_name, releases, yanked, token)
                 if testing_info:
                     manifest["TestingAssemblyVersion"] = testing_info["version"]
                     manifest["_testing_download_url"] = testing_info["download_url"]
@@ -434,24 +486,17 @@ class RepositoryPluginProcessor:
 
         return None
 
-    def _get_testing_release_info(self, owner: str, repo: str, plugin_name: str, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Fetch testing pre-release info (version, download URL, API level) from a repository."""
+    def _get_testing_release_info(self, owner: str, repo: str, plugin_name: str, releases: List[Dict[str, Any]], yanked: set, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Testing pre-release info (version, download URL, API level) from an already-fetched releases list."""
         try:
-            api_url = f"https://api.github.com/repos/{owner}/{repo}/releases"
-            headers = {"Authorization": f"token {token}"} if token else {}
-
-            response = requests.get(api_url, headers=headers, params={"per_page": 30})
-            if response.status_code != 200:
-                return None
-
-            releases = response.json()
-
-            # Find the latest pre-release.
+            # Find the latest pre-release by published_at, skipping drafts and yanked tags.
             # Supports two tag formats:
             #   - Legacy: testing-v1.2.3 (old workflow style)
             #   - Current: v1.2.3 with prerelease=true (new workflow style)
-            for release in releases:
-                if not release.get("prerelease"):
+            for release in sorted(releases, key=lambda r: r.get("published_at") or "", reverse=True):
+                if not release.get("prerelease") or release.get("draft"):
+                    continue
+                if self._tag_version(release.get("tag_name", "")) in yanked:
                     continue
 
                 tag_name = release.get("tag_name", "")
