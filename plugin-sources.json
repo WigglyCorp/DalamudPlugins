@@ -4,8 +4,8 @@
     "testers": "testers.json"
   },
   "plugins": {
-    "Questionable": {
-      "url": "https://github.com/WigglyCorp/Questionable",
+    "WigglyQuest": {
+      "url": "https://github.com/WigglyCorp/WigglyQuest",
       "enabled": true,
       "output": "default",
       "token": "PLUGIN_PAT"
