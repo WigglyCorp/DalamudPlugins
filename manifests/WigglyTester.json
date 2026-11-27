@@ -2,7 +2,7 @@
   "Author": "WigglyMuffin",
   "Name": "WigglyTester",
   "InternalName": "WigglyTester",
-  "AssemblyVersion": "0.1.2.0",
+  "AssemblyVersion": "0.1.3.0",
   "Description": "Redeem a tester key to get your personal list of WigglyMuffin test plugins, install them and keep them updated.",
   "ApplicableVersion": "any",
   "RepoUrl": "https://github.com/WigglyMuffin/WigglyTester",
