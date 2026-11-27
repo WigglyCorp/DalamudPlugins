@@ -5,7 +5,7 @@
         "Author": "WigglyMuffin",
         "DalamudApiLevel": 15,
         "Description": "Redeem a tester key to get your personal list of WigglyMuffin test plugins, install them and keep them updated.",
-        "DownloadCount": 65,
+        "DownloadCount": 66,
         "DownloadLinkInstall": "https://github.com/WigglyMuffin/WigglyTester/releases/download/v0.1.3.0/latest.zip",
         "DownloadLinkUpdate": "https://github.com/WigglyMuffin/WigglyTester/releases/download/v0.1.3.0/latest.zip",
         "InternalName": "WigglyTester",
